@@ -1,0 +1,49 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: operator-clone-build-push
+spec:
+  description: | 
+    This pipeline clones a git repo, builds a Docker image with Kaniko and
+    pushes it to a registry
+  params:
+  - name: repo-url
+    type: string
+  - name: repo-branch
+    type: string
+  - name: image-reference
+    type: string
+  - name: kaniko-executor
+    type: string
+  workspaces:
+  - name: shared-data
+  - name: container-registry-credentials
+  tasks:
+  - name: fetch-repo
+    taskRef:
+      name: git-clone
+    workspaces:
+    - name: output
+      workspace: shared-data
+    params:
+    - name: url
+      value: $(params.repo-url)
+    - name: revision
+      value: $(params.repo-branch)
+  - name: build-push
+    runAfter: ["fetch-repo"]
+    taskRef:
+      name: kaniko
+    workspaces:
+    - name: dockerconfig
+      workspace: container-registry-credentials
+    - name: source
+      workspace: shared-data
+    params:
+    - name: IMAGE
+      value: $(params.image-reference)
+    - name: BUILDER_IMAGE
+      value: $(params.kaniko-executor)
+    - name: EXTRA_ARGS
+      value:
+      - --ignore-path=/product_uuid

@@ -1,0 +1,28 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: operator-clone-build-push-run
+spec:
+  pipelineRef:
+    name: operator-clone-build-push
+  params:
+  - name: repo-url
+    value: https://github.com/openshift/node-observability-operator
+  - name: repo-branch
+    value: main
+  - name: image-reference
+    value: quay.io/skhoury/node-observability-operator:tkn
+  - name: kaniko-executor
+    value: gcr.io/kaniko-project/executor:latest
+  workspaces:
+  - name: container-registry-credentials
+    secret:
+      secretName: skhoury-pull-secret
+  - name: shared-data
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 0.7Gi
